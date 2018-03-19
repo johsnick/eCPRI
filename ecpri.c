@@ -39,18 +39,21 @@ void ecpri_init(const char * url, const char * port, ecpri_socket *sock){
 }
 
 ecpri_msg ecpri_msg_gen(ecpri_msg_t type, int pc_id, int seq_id, void * data, int data_len) {
-  data_len += data_len % 4;
+  int mod = data_len % 4;
+  if(mod != 0){
+    data_len += (4 - mod);
+  }
   char * msg = (char *) malloc(8 + data_len);
   msg[0] = ECPRI_VERSION;
   msg[1] = type;
-  int payload_len = data_len + 2;
+  int payload_len = data_len + 4;
   msg[2] = (payload_len & 0xff00) >> 16;
   msg[3] = (payload_len & 0xff);
   msg[4] = (pc_id & 0xff00) >> 16;
   msg[5] = (pc_id & 0xff);
   msg[6] = (seq_id & 0xff00) >> 16;
   msg[7] = (seq_id & 0xff);
-  memcpy(msg + 8, data, data_len);
+  memcpy(msg + 8, (char *) data, data_len);
   ecpri_msg res;
   res.msg = msg;
   res.len = payload_len + 4;
