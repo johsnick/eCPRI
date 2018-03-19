@@ -1,0 +1,2 @@
+general info: http://www.microhowto.info/howto/listen_for_and_receive_udp_datagrams_in_c.html
+example: https://stackoverflow.com/questions/23726931/c-udp-send-and-receive-on-the-same-socket
