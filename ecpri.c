@@ -9,10 +9,10 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <poll.h>
 
 void ecpri_init(const char * url, const char * port, ecpri_socket *sock){
   struct addrinfo hints;
-  struct addrinfo *rp;
 
   memset(&hints, 0, sizeof(struct addrinfo));
   hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
@@ -36,6 +36,45 @@ void ecpri_init(const char * url, const char * port, ecpri_socket *sock){
     printf("Failed to Bind\n");
     exit(errno);
   }
+}
+
+void ecpri_listen(const char * url, const char * port, void (*func)(ecpri_message *)) {
+  struct addrinfo hints;
+  struct addrinfo *rp;
+
+  memset(&hints, 0, sizeof(struct addrinfo));
+  hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+  hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
+  hints.ai_flags = AI_PASSIVE;    /* For wildcard IP address */
+  hints.ai_protocol = 0;          /* Any protocol */
+  hints.ai_canonname = NULL;
+  hints.ai_addr = NULL;
+  hints.ai_next = NULL;
+
+  int s = getaddrinfo(url, port, &hints, &rp);
+
+  if(s != 0){
+    printf("%s\n", gai_strerror(s));
+    exit(s);
+  }
+
+  int sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+  s = bind(sfd, rp->ai_addr, rp->ai_addrlen);
+
+  struct pollfd pfd;
+  pfd.fd = sfd;
+  pfd.events = POLLIN;
+
+  while(1){
+    poll(&pfd, 1, -1);
+    ecpri_header header;
+    read(sfd, &header, 4);
+    ecpri_message * message = (ecpri_message *) malloc(header.size + 4);
+    read(sfd, message + 4, header.size);
+    memcpy(message, &header, 4);
+    func(message);
+  }
+
 }
 
 void ecpri_close(ecpri_socket *sock){
