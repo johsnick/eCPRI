@@ -30,6 +30,7 @@ typedef struct {
 } ecpri_socket;
 
 void ecpri_init(const char * url, const char * port, ecpri_socket * sock);
+void ecpri_close(ecpri_socket *sock);
 ecpri_msg ecpri_msg_gen(ecpri_msg_t type, int pc_id, int seq_id, void * data, int data_len);
 int ecpri_send(ecpri_socket *sock, ecpri_msg msg);
 int ecpri_muttisend(ecpri_socket *sock, ecpri_msg *msgs, int msg_count);

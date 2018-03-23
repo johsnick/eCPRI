@@ -38,6 +38,11 @@ void ecpri_init(const char * url, const char * port, ecpri_socket *sock){
   }
 }
 
+void ecpri_close(ecpri_socket *sock){
+  close(sock->sfd);
+  free(sock->addr);
+}
+
 ecpri_msg ecpri_msg_gen(ecpri_msg_t type, int pc_id, int seq_id, void * data, int data_len) {
   int mod = data_len % 4;
   if(mod != 0){
