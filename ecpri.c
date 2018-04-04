@@ -59,19 +59,12 @@ void ecpri_listen(const char * url, const char * port, void (*func)(ecpri_messag
   }
 
   int sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-  s = bind(sfd, rp->ai_addr, rp->ai_addrlen);
-
-  struct pollfd pfd;
-  pfd.fd = sfd;
-  pfd.events = POLLIN;
-
+  bind(sfd, rp->ai_addr, rp->ai_addrlen);
+  
   while(1){
-    poll(&pfd, 1, -1);
-    ecpri_header header;
-    read(sfd, &header, 4);
-    ecpri_message * message = (ecpri_message *) malloc(header.size + 4);
-    read(sfd, message + 4, header.size);
-    memcpy(message, &header, 4);
+    ecpri_message * message = (ecpri_message *) malloc(sizeof(ecpri_message));
+    read(sfd, message, sizeof(ecpri_message));
+    message->header.size = ntohs(message->header.size);
     func(message);
   }
 
@@ -82,16 +75,22 @@ void ecpri_close(ecpri_socket *sock){
   free(sock->addr);
 }
 
-ecpri_msg ecpri_msg_gen(ecpri_msg_t type, int pc_id, int seq_id, void * data, int data_len) {
+ecpri_message ecpri_msg_gen(ecpri_msg_t type, int pc_id, int seq_id, void * data, int data_len) {
+  ecpri_message *msg = (ecpri_message *) malloc(sizeof(ecpri_message)):
+  ecpri_message->header.version = ECPRI_VERSION;
+  ecpri_message->header.msg_type = type;
+  
   int mod = data_len % 4;
   if(mod != 0){
     data_len += (4 - mod);
   }
-  char * msg = (char *) malloc(8 + data_len);
-  msg[0] = ECPRI_VERSION;
-  msg[1] = type;
-  int payload_len = data_len + 4;
-  msg[2] = (payload_len & 0xff00) >> 16;
+  
+  ecpri_message->header.size = data_len + 4;
+  int mod = data_len % 4;
+  if(mod != 0){
+    data_len += (4 - mod);
+  }
+  msg[2] = (payload_len & 0xff00) >> 8;
   msg[3] = (payload_len & 0xff);
   msg[4] = (pc_id & 0xff00) >> 16;
   msg[5] = (pc_id & 0xff);
@@ -110,6 +109,7 @@ int ecpri_send(ecpri_socket *sock, ecpri_msg msg){
 
   if(res == 0){
     free(msg.msg);
+    free(&msg); 
   }
 
   return res;
