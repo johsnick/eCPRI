@@ -38,7 +38,7 @@ void ecpri_init(const char * url, const char * port, ecpri_socket *sock){
   }
 }
 
-void ecpri_listen(const char * url, const char * port, void (*func)(ecpri_message *)) {
+void ecpri_listen(const char * port, void (*func)(ecpri_message *)) {
   struct addrinfo hints;
   struct addrinfo *rp;
 
@@ -51,7 +51,7 @@ void ecpri_listen(const char * url, const char * port, void (*func)(ecpri_messag
   hints.ai_addr = NULL;
   hints.ai_next = NULL;
 
-  int s = getaddrinfo(url, port, &hints, &rp);
+  int s = getaddrinfo("0.0.0.0", port, &hints, &rp);
 
   if(s != 0){
     printf("%s\n", gai_strerror(s));
@@ -103,7 +103,6 @@ int ecpri_send(ecpri_socket *sock, ecpri_message * msg){
   int bytes_to_write = msg->header.size + 4;
   int bytes_written = 0;
   while(bytes_to_write) {
-    printf("hit\n");
     int count = write(sock->sfd, msg + bytes_written, bytes_to_write);
     bytes_to_write -= count;
     bytes_written += count;

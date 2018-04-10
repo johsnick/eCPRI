@@ -7,5 +7,5 @@ void recieve(ecpri_message * msg) {
 }
 
 int main(){
-  ecpri_listen("127.0.0.1", "1234", recieve);
+  ecpri_listen("1234", recieve);
 }
