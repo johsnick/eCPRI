@@ -21,11 +21,6 @@ typedef enum
 } ecpri_msg_t;
 
 typedef struct {
-  char *msg;
-  int len;
-} ecpri_msg;
-
-typedef struct {
   uint16_t pc_id;
   uint16_t seq_id;
   char data[ECPRI_MAX_PAYLOAD_LEN - 4];
@@ -52,9 +47,10 @@ typedef struct {
 
 void ecpri_init(const char * url, const char * port, ecpri_socket * sock);
 void ecpri_close(ecpri_socket *sock);
-ecpri_msg ecpri_msg_gen(ecpri_msg_t type, int pc_id, int seq_id, void * data, int data_len);
-int ecpri_send(ecpri_socket *sock, ecpri_msg msg);
-int ecpri_muttisend(ecpri_socket *sock, ecpri_msg *msgs, int msg_count);
+ecpri_message * ecpri_msg_gen(ecpri_msg_t type, int pc_id, int seq_id, void * data, int data_len);
+int ecpri_send(ecpri_socket *sock, ecpri_message * msg);
+// int ecpri_muttisend(ecpri_socket *sock, ecpri_msg *msgs, int msg_count);
 void ecpri_listen(const char * url, const char * port, void (*func)(ecpri_message *));
+void ecpri_message_ntoh(ecpri_message *msg);
 
 #endif

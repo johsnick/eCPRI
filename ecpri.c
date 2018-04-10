@@ -64,7 +64,7 @@ void ecpri_listen(const char * url, const char * port, void (*func)(ecpri_messag
   while(1){
     ecpri_message * message = (ecpri_message *) malloc(sizeof(ecpri_message));
     read(sfd, message, sizeof(ecpri_message));
-    message->header.size = ntohs(message->header.size);
+    ecpri_message_ntoh(message);
     func(message);
   }
 
@@ -75,68 +75,66 @@ void ecpri_close(ecpri_socket *sock){
   free(sock->addr);
 }
 
-ecpri_message ecpri_msg_gen(ecpri_msg_t type, int pc_id, int seq_id, void * data, int data_len) {
-  ecpri_message *msg = (ecpri_message *) malloc(sizeof(ecpri_message)):
-  ecpri_message->header.version = ECPRI_VERSION;
-  ecpri_message->header.msg_type = type;
-  
-  int mod = data_len % 4;
-  if(mod != 0){
-    data_len += (4 - mod);
+void ecpri_message_ntoh(ecpri_message *msg) {
+  msg->header.size = ntohs(msg->header.size);
+  if(msg->header.msg_type < 4){
+    msg->payload.iq.seq_id = ntohs(msg->payload.iq.seq_id);
+    msg->payload.iq.pc_id = ntohs(msg->payload.iq.pc_id);
   }
-  
-  ecpri_message->header.size = data_len + 4;
-  int mod = data_len % 4;
-  if(mod != 0){
-    data_len += (4 - mod);
-  }
-  msg[2] = (payload_len & 0xff00) >> 8;
-  msg[3] = (payload_len & 0xff);
-  msg[4] = (pc_id & 0xff00) >> 16;
-  msg[5] = (pc_id & 0xff);
-  msg[6] = (seq_id & 0xff00) >> 16;
-  msg[7] = (seq_id & 0xff);
-  memcpy(msg + 8, (char *) data, data_len);
-  ecpri_msg res;
-  res.msg = msg;
-  res.len = payload_len + 4;
-
-  return res;
 }
 
-int ecpri_send(ecpri_socket *sock, ecpri_msg msg){
-  int res = write(sock->sfd, msg.msg, msg.len);
+ecpri_message * ecpri_msg_gen(ecpri_msg_t type, int pc_id, int seq_id, void * data, int data_len) {
+  ecpri_message *msg = (ecpri_message *) malloc(sizeof(ecpri_message));
+  msg->header.protocol = ECPRI_VERSION;
+  msg->header.msg_type = type;  
+  msg->header.size = htons(data_len + 4);
 
-  if(res == 0){
-    free(msg.msg);
-    free(&msg); 
-  }
+  char * raw = msg->payload.raw;
+  raw[0] = (pc_id & 0xff00) >> 8;
+  raw[1] = (pc_id & 0xff);
+  raw[2] = (seq_id & 0xff00) >> 8;
+  raw[3] = (seq_id & 0xff);
+  memcpy(raw + 4, (char *) data, data_len);
 
-  return res;
+  return msg;
 }
 
-int ecpri_muttisend(ecpri_socket *sock, ecpri_msg *msgs, int msg_count){
-  int i;
-  int size = 0;
-  for(i = 0; i < msg_count - 1; i++){
-    msgs[i].msg[0] |= 1; 
-    size += msgs[i].len;
-  }
-  size += msgs[msg_count - 1].len;
-  char * data = (char *) malloc(size);
-  int index = 0;
-  for(i =0; i < msg_count; i++){
-    memcpy(data + index, msgs[i].msg, msgs[i].len);
-    index += msgs[i].len;
+int ecpri_send(ecpri_socket *sock, ecpri_message * msg){
+  int bytes_to_write = msg->header.size + 4;
+  int bytes_written = 0;
+  while(bytes_to_write) {
+    printf("hit\n");
+    int count = write(sock->sfd, msg + bytes_written, bytes_to_write);
+    bytes_to_write -= count;
+    bytes_written += count;
   }
 
-  int res =  write(sock->sfd, data, size);
-
-  if(res == 0){
-    for(i = 0; i < msg_count; i++){
-      free(msgs[i].msg);
-    }
-  }
-
-  return res;
+  free(msg); 
+  return 0;
 }
+
+// int ecpri_muttisend(ecpri_socket *sock, ecpri_msg *msgs, int msg_count){
+//   int i;
+//   int size = 0;
+//   for(i = 0; i < msg_count - 1; i++){
+//     msgs[i].msg[0] |= 1; 
+//     size += msgs[i].len;
+//   }
+//   size += msgs[msg_count - 1].len;
+//   char * data = (char *) malloc(size);
+//   int index = 0;
+//   for(i =0; i < msg_count; i++){
+//     memcpy(data + index, msgs[i].msg, msgs[i].len);
+//     index += msgs[i].len;
+//   }
+
+//   int res =  write(sock->sfd, data, size);
+
+//   if(res == 0){
+//     for(i = 0; i < msg_count; i++){
+//       free(msgs[i].msg);
+//     }
+//   }
+
+//   return res;
+// }
