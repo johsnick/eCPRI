@@ -1,7 +1,7 @@
 #include "ecpri.h"
 
 void recieve(ecpri_message * msg) {
-  printf("Message#:\t%d\n", msg->payload.iq.seq_id);
+  // printf("Message#:\t%d\n", msg->payload.iq.seq_id);
 
   free(msg);
 }
